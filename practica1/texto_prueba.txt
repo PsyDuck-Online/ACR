@@ -1,0 +1,8 @@
+Este es un texto con pocas palabras para
+comprobar que el progama sirve correctamente
+casa casa casa casa casa casa 6
+jardin jardin jardin 3
+pelota pleota pelota pelota pleota pelota pelota pleota pelota 9
+juego 1
+amor amor amor 3 
+enojo enojo 2

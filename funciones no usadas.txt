@@ -1,0 +1,37 @@
+/* REALIZA UNA MULTIPLICACION DE MATRICES RECIBIENDO COMO PARAMETROS LAS MATRICES A MULTIPLICAR, LA MATRIZ RESULTADO EL NUMERO DE FILAS Y COLUMNAS DE A Y LAS COLUMNAS DE B */
+void resolverMatriz(int **A, int **B, int **C, int filasA, int columnasA, int columnasB)
+{
+    int aux = 0, i, j, k;
+    for(k = 0; k < filasA; k++)
+    {
+        for(i = 0; i < columnasB; i++)
+        {
+            for(j = 0; j < columnasA; j++)
+            {
+                aux += A[k][j] * B[j][i];
+            }
+            
+            C[k][i] = aux;
+            aux = 0;
+        }
+        
+    }
+}
+
+/* RESUELVE UN ELEMENTO DE LA MUTIPLICACION DE MATRICES RECIBE COMO PARAMETROS:
+1: MATRIZ A
+2: MATRIZ B:
+3: LA FILA DE LA "MATRIZ A" A MULTIPLICAR
+4: LA COLUMNA DE LA "MATRIZ B" A MULTOPLICAR
+5: EL NUMERO DE COLUMNAS DE LA "MATRIZ A" O EL NUMERO DE FILAS DE LA "MATRIZ B" 
+*/
+void resolverElemento(int **A, int **B, int filaA, int columnaB, int columnasA)
+{
+    int aux = 0, i ,j;
+
+    for(i = 0 ; i < columnasA ; i++)
+    {
+        aux += A[filaA][i] * B[i][columnaB];
+    }
+    printf("C[%d][%d] = %d\n",filaA ,columnaB, aux);
+}
