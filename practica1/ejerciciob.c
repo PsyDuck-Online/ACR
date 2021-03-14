@@ -1,11 +1,11 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
-#include<sys/types.h>
+#include<pthread.h>
 #include<dirent.h>
-#include <pthread.h>
 
-typedef struct res{
+typedef struct respuesta
+{
     char *nombre;
     int total;
 
@@ -21,20 +21,20 @@ typedef struct res{
     float p_pelota;
     float p_juego;
     float p_amor;
-    float p_enojo;
-}res;
+    float p_enojo; 
+}respuesta;
 
-void *buscarPalabras(void*);
+void* analizarTexto(void*);
+int contarArchivos(char*,char*);
 
 int main(int argc, char const *argv[])
 {
+    // DEFINICION DE LAS VARIABLES
     DIR *folder;
     struct dirent *entry;
     pthread_t *hilos;
-    int num_hilos = 0;
-    int i;
-    
-    
+    int n_archivos;
+    int i = 0;
 
     folder = opendir(".");
     if(folder == NULL)
@@ -42,136 +42,148 @@ int main(int argc, char const *argv[])
         puts("Error al leer el directorio");
         return(1);
     }
-    
-    while((entry = readdir(folder)))
-    {
-        if(strstr(entry->d_name,".txt") != NULL)
-        {            
-            num_hilos++;
-        }   
-    }
-    closedir(folder);
+
+    n_archivos = contarArchivos(".", ".txt"); 
 
     folder = opendir(".");
-    hilos = (pthread_t*)malloc(num_hilos * sizeof(pthread_t));
+    hilos = (pthread_t*)malloc(n_archivos * sizeof(pthread_t));
 
-    i = 0;
+    
+    // CREACION DE HILOS, 1 HILO POR 1 ARCHIVO
     while((entry = readdir(folder)))
     {
-        if(strstr(entry->d_name,".txt") != NULL)
+        if(strstr(entry->d_name, ".txt") != NULL)
         {
-            entry->d_name;
-
-            pthread_create(&hilos[i],NULL,&buscarPalabras,(void*)entry->d_name);
-            
+            pthread_create(&hilos[i], NULL, analizarTexto, (void*)entry->d_name);
             i++;
-        }   
+        }
     }
 
-    res *resp[num_hilos];
-    for(i = 0 ; i < num_hilos ; i++)
+    respuesta *r[n_archivos]; // VARIABLE DE RETORNO DE LOS HILOS
+
+    for(i = 0; i < n_archivos; i++)
     {
-        pthread_join(hilos[i],(void**)&resp[i]);
+        pthread_join(hilos[i], (void*)&r[i]);
     }
-
-
-    for(i = 0; i < num_hilos ; i++)
-    {
-        printf("NOMBRE: %s\n", (char*)resp[i]->nombre);
-        printf("TOTAL DE PALABRAS: %d palabras\n", (int)resp[i]->total);
-        printf("Casa: %d veces => %f %%\n", (int)resp[i]->n_casa, (float)resp[i]->p_casa);
-        printf("Jardin: %d veces => %f %%\n", (int)resp[i]->n_jardin, (float)resp[i]->p_jardin);
-        printf("Pelota: %d veces => %f %%\n", (int)resp[i]->n_pelota, (float)resp[i]->p_pelota);
-        printf("Juego: %d veces => %f %%\n", (int)resp[i]->n_juego, (float)resp[i]->p_juego);
-        printf("Amor: %d veces => %f %%\n", (int)resp[i]->n_amor, (float)resp[i]->p_amor);
-        printf("Enojo: %d veces => %f %%\n", (int)resp[i]->n_enojo, (float)resp[i]->p_enojo);
-        printf("-------------\n\n");
-    }
-
-
-    free(hilos);
-    closedir(folder);
     
+    // MUESTRA LA INFORMACION QUE RETORNO CADA HILO
+    for(i = 0; i < n_archivos; i++)
+    {
+        printf("%s\n", (char*)r[i]->nombre);
+        printf("Total: %d\n", (int)r[i]->total);
+        printf("Casa: %d => %f %%\n",(int)r[i]->n_casa, (float)r[i]->p_casa);
+        printf("Jardin: %d => %f %%\n", (int)r[i]->n_jardin, (float)r[i]->p_jardin);
+        printf("Pelota: %d => %f %%\n",(int)r[i]->n_pelota, (float)r[i]->p_pelota);
+        printf("Juego: %d => %f %%\n", (int)r[i]->n_juego, (float)r[i]->p_juego);
+        printf("Amor: %d => %f %%\n", (int)r[i]->n_amor, (float)r[i]->p_amor);
+        printf("Enojo: %d => %f %%\n", (int)r[i]->n_enojo, (float)r[i]->p_enojo);
+        printf("-----------\n");
+    }
+
+    closedir(folder);
+    free(hilos);
+
     return 0;
 }
 
-void* buscarPalabras(void*args)
+// CUENTA LOS ARCHIVOS DEL TIPO ESPECIFICADO EN UNA CARPETA ESPECIFICA
+int contarArchivos(char*direccion, char*tipo)
 {
+    DIR *folder;
+    int n_hilos = 0;
+    struct dirent *entry;
 
-    char *nombre = (char*)args;
-
-    FILE *archivo = fopen(nombre, "r");
-    char palabra_actual[50];
-    int n_palabras = 0;
-    res *resp = (res*)malloc(sizeof(res));
-
-    resp->n_casa = 0;
-    resp->n_jardin = 0;
-    resp->n_pelota = 0;
-    resp->n_juego = 0;
-    resp->n_amor = 0;
-    resp->n_enojo = 0;
-
-    if(archivo != NULL)
+    folder = opendir(direccion);
+    if(folder == NULL)
     {
-        while(!feof(archivo))
+        puts("Error al leer el directorio");
+        return -1;
+    }
+
+    while((entry = readdir(folder)))
+    {
+        if(strstr(entry->d_name, tipo) != NULL)
         {
-            fscanf(archivo, "%s", palabra_actual);
-            n_palabras++;
-
-            if(strcasecmp(palabra_actual, "casa") == 0 || strcasecmp(palabra_actual, "casa,") == 0 || strcasecmp(palabra_actual, "casa."))
-            {
-                resp->n_casa++;
-            }
-
-            if(strcasecmp(palabra_actual, "jardin") == 0 || strcasecmp(palabra_actual, "jardin,") == 0 || strcasecmp(palabra_actual, "jardin.") == 0)
-            {
-                resp->n_jardin++;
-            }
-
-            if(strcasecmp(palabra_actual, "pelota") == 0 || strcasecmp(palabra_actual, "pelota,") == 0 || strcasecmp(palabra_actual, "pelota.") == 0)
-            {
-                resp->n_pelota++;
-            }
-
-            if(strcasecmp(palabra_actual, "juego") == 0 || strcasecmp(palabra_actual, "juego,") == 0 || strcasecmp(palabra_actual, "juego.") == 0)
-            {
-                resp->n_juego++;
-            }
-
-            if(strcasecmp(palabra_actual, "amor") == 0 || strcasecmp(palabra_actual, "amor,") == 0 || strcasecmp(palabra_actual, "amo.") == 0)
-            {
-                resp->n_amor++;
-            }
-
-            if(strcasecmp(palabra_actual, "enojo") == 0 || strcasecmp(palabra_actual, "enojo,") == 0 || strcasecmp(palabra_actual, "enojo.") == 0)
-            {
-                resp->n_enojo++;
-            }
+            n_hilos++;
         }
     }
-    resp->nombre = nombre;
-    resp->total = n_palabras;
 
-    resp->p_casa = resp->n_casa*100;
-    resp->p_casa = resp->p_casa / n_palabras;
+    closedir(folder);
+    free(entry);
 
+    return n_hilos;
+}
 
-    resp->p_jardin = resp->n_jardin * 100;
-    resp->p_jardin = resp->p_jardin / n_palabras;
+// FUNCION LLAMADA EN LOS HILOS
+void* analizarTexto(void*arg)
+{
+    char* nombre_archivo = (char*)arg;
+    char pal_actual[50];
+    FILE *archivo = fopen(nombre_archivo, "r");
+    respuesta *r = (respuesta*)malloc(sizeof(respuesta));
+    
+    r->nombre = nombre_archivo;
+    r->total = 0;
+    r->n_amor = 0;
+    r->n_enojo = 0;
+    r->n_casa = 0;
+    r->n_jardin = 0;
+    r->n_juego = 0;
+    r->n_pelota = 0;
 
-    resp->p_pelota = resp->n_pelota * 100;
-    resp->p_pelota = resp->p_pelota / n_palabras;
+    while(!feof(archivo))
+    {
+        fscanf(archivo, "%s", pal_actual);
+        r->total++;
 
-    resp->p_juego = resp->n_juego * 100;
-    resp->p_juego = resp->p_juego / n_palabras;
+        if(!strcasecmp(pal_actual, "casa") || !strcasecmp(pal_actual, "casa,") || !strcasecmp(pal_actual, "casa."))
+        {
+            r->n_casa++;
+        }
+        if(!strcasecmp(pal_actual, "jardin") || !strcasecmp(pal_actual, "jardin,") || !strcasecmp(pal_actual, "jardin."))
+        {
+            r->n_jardin++;
+        }
+        if(!strcasecmp(pal_actual, "pelota") || !strcasecmp(pal_actual, "pelota,") || !strcasecmp(pal_actual, "pelota."))
+        {
+            r->n_pelota++;
+        }
+        if(!strcasecmp(pal_actual, "juego") || !strcasecmp(pal_actual, "juego,") || !strcasecmp(pal_actual, "juego."))
+        {
+            r->n_juego++;
+        }
+        if(!strcasecmp(pal_actual, "amor") || !strcasecmp(pal_actual, "amor,") || !strcasecmp(pal_actual, "amor."))
+        {
+            r->n_amor++;
+        }
+        if(!strcasecmp(pal_actual, "enojo") || !strcasecmp(pal_actual, "enojo,") || !strcasecmp(pal_actual, "enojo."))
+        {
+            r->n_enojo++;
+        }
+    }
 
-    resp->p_amor = resp->n_amor * 100;
-    resp->p_amor = resp->p_amor / n_palabras;
+    
 
-    resp->p_enojo = resp->n_enojo * 100;
-    resp->p_enojo = resp->p_enojo / n_palabras;
+    r->p_casa = r->n_casa * 100;
+    r->p_casa /= r->total;
 
+    r->p_jardin = r->n_jardin * 100;
+    r->p_jardin /= r->total;
+
+    r->p_pelota = r->n_pelota * 100;
+    r->p_pelota /= r->total;
+    
+
+    r->p_juego = r->n_juego * 100;
+    r->p_juego /= r->total;
+
+    r->p_amor = r->n_amor * 100;
+    r->p_amor /= r->total;
+
+    r->p_enojo = r->n_enojo * 100;
+    r->p_enojo /= r->total;
+    
     fclose(archivo);
-    pthread_exit((void*)resp);
+
+    pthread_exit((void*)r);
 }
